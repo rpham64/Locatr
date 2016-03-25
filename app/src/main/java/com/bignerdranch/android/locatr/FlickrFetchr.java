@@ -31,7 +31,6 @@ public class FlickrFetchr {
 
     // API Methods
     private static final String METHOD_FETCH_RECENTS = "flickr.photos.getRecent";
-    private static final String METHOD_SEARCH = "flickr.photos.search";
 
     // REST Endpoint URL
     private static final String REST_ENDPOINT = "https://api.flickr.com/services/rest/";
@@ -79,20 +78,6 @@ public class FlickrFetchr {
         }
     }
 
-    public List<GalleryItem> fetchRecentPhotos(Integer page) {
-
-        String url = buildUrl(METHOD_FETCH_RECENTS, null, page);
-
-        return downloadGalleryItems(url);
-    }
-
-    public List<GalleryItem> searchPhotos(String query, Integer page) {
-
-        String url = buildUrl(METHOD_SEARCH, query, page);
-
-        return downloadGalleryItems(url);
-    }
-
     public List<GalleryItem> searchPhotos(Location location) {
 
         String url = buildUrl(location);
@@ -111,38 +96,14 @@ public class FlickrFetchr {
         return new String(getUrlBytes(urlSpec));
     }
 
-    private String buildUrl(String method, String query, Integer page) {
-
-        Uri url = Uri.parse(REST_ENDPOINT)
-                .buildUpon()
-                .appendQueryParameter("method", method)
-                .appendQueryParameter("api_key", API_KEY)
-                .appendQueryParameter("format", "json")
-                .appendQueryParameter("nojsoncallback", "1")
-                .appendQueryParameter("extras", "url_s")
-                .appendQueryParameter("page", Integer.toString(page))
-                .build();
-
-        if (method.equals(METHOD_SEARCH)) {
-            Uri.Builder uriBuilder = url.buildUpon()
-                    .appendQueryParameter("text", query);
-
-            return uriBuilder.build().toString();
-        }
-
-        return url.toString();
-    }
-
     private String buildUrl(Location location) {
         return Uri.parse(REST_ENDPOINT)
                 .buildUpon()
-                .appendQueryParameter("method", METHOD_SEARCH)
+                .appendQueryParameter("method", METHOD_FETCH_RECENTS)
                 .appendQueryParameter("api_key", API_KEY)
                 .appendQueryParameter("format", "json")
                 .appendQueryParameter("nojsoncallback", "1")
-                .appendQueryParameter("extras", "url_s")
-                .appendQueryParameter("lat", "" + location.getLatitude())
-                .appendQueryParameter("lon", "" + location.getLongitude())
+                .appendQueryParameter("extras", "url_s, geo")
                 .build().toString();
     }
 
@@ -191,6 +152,8 @@ public class FlickrFetchr {
         // Deserialize JSON to Java object using Gson
         FlickrResponse flickrResponse = new Gson().fromJson(jsonString, FlickrResponse.class);
 
+        Log.i(TAG, "FlickrResponse: " + flickrResponse);
+
         // List of photos
         List<Photo> photos = flickrResponse.getPhotos().getPhoto();
 
@@ -206,6 +169,8 @@ public class FlickrFetchr {
             galleryItem.setOwner(photo.getOwner());
             galleryItem.setCaption(photo.getTitle());
             galleryItem.setUrl(photo.getUrl_s());
+            galleryItem.setLatitude(photo.getLatitude());
+            galleryItem.setLongitude(photo.getLongitude());
 
             items.add(galleryItem);
         }

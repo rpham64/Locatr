@@ -13,6 +13,8 @@ public class GalleryItem {
     private String mId;                 // Photo ID
     private String mUrl;                // Photo Link (flickr)
     private String mOwner;              // Photo User ID
+    private double mLatitude;           // Latitude Coordinates
+    private double mLongitude;          // Longitude Coordinates
 
     public String getCaption() {
         return mCaption;
@@ -44,6 +46,22 @@ public class GalleryItem {
 
     public void setOwner(String owner) {
         mOwner = owner;
+    }
+
+    public double getLatitude() {
+        return mLatitude;
+    }
+
+    public void setLatitude(double latitude) {
+        mLatitude = latitude;
+    }
+
+    public double getLongitude() {
+        return mLongitude;
+    }
+
+    public void setLongitude(double longitude) {
+        mLongitude = longitude;
     }
 
     /**

@@ -90,6 +90,10 @@ class Photo {
     private Integer ispublic;
     private Integer isfriend;
     private Integer isfamily;
+    private Double latitude;
+    private Double longitude;
+    private Integer accuracy;
+    private Integer context;
     private String url_s;
     private String height_s;
     private String width_s;
@@ -164,6 +168,38 @@ class Photo {
 
     public void setIsfamily(Integer isfamily) {
         this.isfamily = isfamily;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Integer getAccuracy() {
+        return accuracy;
+    }
+
+    public void setAccuracy(Integer accuracy) {
+        this.accuracy = accuracy;
+    }
+
+    public Integer getContext() {
+        return context;
+    }
+
+    public void setContext(Integer context) {
+        this.context = context;
     }
 
     public String getUrl_s() {

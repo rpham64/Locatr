@@ -1,41 +1,58 @@
 package com.bignerdranch.android.locatr;
 
+import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
+ * Displays map with images taken at a given location
+ *
  * Created by Rudolf on 3/24/2016.
  */
-public class LocatrFragment extends Fragment {
+public class LocatrFragment extends SupportMapFragment {
 
     private static final String TAG = "LocatrFragment";
 
-    private ImageView mImageView;
     private GoogleApiClient mGoogleApiClient;
+    private GoogleMap mMap;
+
+    private Bitmap mMapImage;
+    private GalleryItem mMapItem;
+    private Location mCurrentLocation;
 
     private ProgressDialog mProgressDialog;
+
+    public LocatrFragment() {
+    }
 
     public static LocatrFragment newInstance() {
         return new LocatrFragment();
@@ -61,18 +78,19 @@ public class LocatrFragment extends Fragment {
                 })
                 .build();
 
+        /** Loading Progress Dialog */
         mProgressDialog = new ProgressDialog(getActivity(), ProgressDialog.STYLE_SPINNER);
-    }
 
-    @Nullable
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        mProgressDialog.setMessage("Downloading image...");
 
-        View view = inflater.inflate(R.layout.fragment_locatr, container, false);
-
-        mImageView = (ImageView) view.findViewById(R.id.image);
-
-        return view;
+        /** Creating the Map */
+        getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(GoogleMap googleMap) {
+                mMap = googleMap;
+                updateUI();
+            }
+        });
     }
 
     @Override
@@ -105,8 +123,10 @@ public class LocatrFragment extends Fragment {
         switch (item.getItemId()) {
 
             case R.id.action_locate:
-                findImage();
+
                 mProgressDialog.show();
+                findImage();
+
                 return true;
 
             default:
@@ -117,7 +137,7 @@ public class LocatrFragment extends Fragment {
     }
 
     /**
-     * Retrieve a location fix from FusedLocationApi
+     * Retrieves a fix for the user's current location
      */
     private void findImage() {
 
@@ -126,6 +146,21 @@ public class LocatrFragment extends Fragment {
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setNumUpdates(1);
         locationRequest.setInterval(0);
+
+        if (ActivityCompat.checkSelfPermission(getActivity(),
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(getActivity(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                        PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
 
         // Send off request and listen for Locations that are returned
         LocationServices.FusedLocationApi
@@ -139,10 +174,53 @@ public class LocatrFragment extends Fragment {
 
     }
 
+    /**
+     * Updates UI to display zoomed-in area of interest
+     */
+    private void updateUI() {
+
+        if (mMap == null || mMapImage == null) return;
+
+        // Retrieve current and image locations
+        LatLng imagePoint = new LatLng(mMapItem.getLatitude(), mMapItem.getLongitude());
+        LatLng myPoint = new LatLng(
+                mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
+        Log.i(TAG, "ImagePoint: " + imagePoint.toString());
+        Log.i(TAG, "MyPoint: " + myPoint.toString());
+
+        // Create location markers
+        BitmapDescriptor imageBitmap = BitmapDescriptorFactory.fromBitmap(mMapImage);
+
+        MarkerOptions imageMarker = new MarkerOptions()
+                .position(imagePoint)
+                .icon(imageBitmap);
+
+        MarkerOptions myMarker = new MarkerOptions()
+                .position(myPoint);
+
+        mMap.clear();
+        mMap.addMarker(imageMarker);
+        mMap.addMarker(myMarker);
+
+        // Create map area bounds
+        LatLngBounds bounds = new LatLngBounds.Builder()
+                .include(imagePoint)
+                .include(myPoint)
+                .build();
+
+        // Update camera
+        int margin = getResources().getDimensionPixelSize(R.dimen.map_inset_margin);
+        CameraUpdate update = CameraUpdateFactory.newLatLngBounds(bounds, margin);
+
+        mMap.animateCamera(update);
+    }
+
     private class SearchTask extends AsyncTask<Location, Void, Void> {
 
         private GalleryItem mGalleryItem;
         private Bitmap mBitmap;
+        private Location mLocation;
 
         /**
          * Download first GalleryItem that comes up
@@ -153,6 +231,7 @@ public class LocatrFragment extends Fragment {
         @Override
         protected Void doInBackground(Location... params) {
 
+            mLocation = params[0];
             FlickrFetchr flickrFetchr = new FlickrFetchr();
             List<GalleryItem> items = flickrFetchr.searchPhotos(params[0]);
 
@@ -174,12 +253,16 @@ public class LocatrFragment extends Fragment {
         /**
          * Post mGalleryItem to mImageView
          *
-         * @param aVoid
+         * @param result
          */
         @Override
-        protected void onPostExecute(Void aVoid) {
-            mImageView.setImageBitmap(mBitmap);
-            mProgressDialog.hide();
+        protected void onPostExecute(Void result) {
+            mMapImage = mBitmap;
+            mMapItem = mGalleryItem;
+            mCurrentLocation = mLocation;
+
+            mProgressDialog.dismiss();
+            updateUI();
         }
     }
 }
