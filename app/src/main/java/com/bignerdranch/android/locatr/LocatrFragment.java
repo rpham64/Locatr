@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * test
+ * test1
  *
  * Displays map with images taken at a given location
  *
