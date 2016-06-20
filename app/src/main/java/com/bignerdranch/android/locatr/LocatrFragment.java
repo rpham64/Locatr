@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * created dev3
+ * created feature3
  *
  * Displays map with images taken at a given location
  *
